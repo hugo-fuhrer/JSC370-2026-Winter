@@ -9,7 +9,7 @@ filters:
   - r-wasm/live
 jupyter: python3
 execute:
-  enabled: false
+  enabled: true
   echo: true
   warning: false
   message: false
@@ -93,6 +93,7 @@ met.dtypes
 ```
 
 Summary:
+
 - Again, as per lecture, most variables have a quality control column.
 - Mix of integers, floats, objects...
 - Logically the IDs, dates, quality control ratings and other discrete values are int64
@@ -114,7 +115,7 @@ temp    0
 elev    0
 dtype: int64
 
-- Are there any unusual values that look suspicious?
+Are there any unusual values that look suspicious?
 
 - -40 degrees in June seems excessively low
 - 999.9 degrees is not physically possible
@@ -134,7 +135,7 @@ print(minT, maxT, minE, maxE)
 ```
 
 Summary:
-- -40.0, 999.9, -35, 3680
+- -40.0C, 999.9C, -35m, 3680m
 
 
 
@@ -150,6 +151,7 @@ met[['temp']].describe().round(4)
 ```
 
 Summary:
+
 - Temperature range of -40 to 56, google indicates 15 to 30.
 
 - Elevation range of -35 to 3680, google indicates -86 to 4421, so we are within the physical bounds.
@@ -160,7 +162,7 @@ Summary:
 cold_temps = met.loc[met['temp'] <= -20.00, ['temp','lat', 'lon', 'elev']]
 cold_temps
 met.loc[met['temp'] <= -20.00] = np.nan
-met[['temp']].describe().round(4)
+display(met[['temp']].describe().round(4))
 # display data here extract lat and lon and check google
 ```
 
@@ -208,7 +210,7 @@ min_elev_station = met[met['elev'] == met['elev'].min()]
 ### 6b. Histogram of temperature at minimum elevation site
 
 ```{python}
-plt.hist(min_elev_station['temp'].dropna(), bins=50)
+display(plt.hist(min_elev_station['temp'].dropna(), bins=50))
 plt.xlabel('Temperature in C')
 ```
 - On most days, the temperature ranges from 25 to 40 degree.
@@ -232,7 +234,7 @@ min_elev_station = min_elev_station.sort_values('date')
 
 # Create line plot of temperature by date
 
-plt.plot(min_elev_station['date'], min_elev_station['temp'], linewidth=0.5, alpha=0.7)
+display(plt.plot(min_elev_station['date'], min_elev_station['temp'], linewidth=0.5, alpha=0.7))
 plt.xlabel('Date')
 plt.ylabel('Temperature in C')
 plt.grid(True, alpha=0.3)
@@ -273,7 +275,7 @@ cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik)
 ax.set_xlabel('Longitude')
 ax.set_ylabel('Latitude')
 ax.set_title(f'Lowest Elevation Station (Elevation: {elev} m)')
-plt.show()
+display(plt.show())
 ```
 
 Summarize where the lowest elevation station is located.
