@@ -1,0 +1,236 @@
+---
+title: "Lab 03 - EDA and Viz 1"
+subtitle: "JSC370 (Winter 2026)"
+date: "January 21, 2026"
+format:
+  live-html:
+    toc: true
+filters:
+  - r-wasm/live
+jupyter: python3
+execute:
+  enabled: false
+  echo: true
+  warning: false
+  message: false
+---
+
+
+# Learning Goals
+
+- Download [lab 3 here](https://github.com/JSC370/JSC370-2026/blob/main/labs/lab3/lab03-github.qmd)
+- Read in from github and get familiar with a meteorology dataset 
+- Plan out how to tackle the objective question
+- Step through the EDA "checklist" presented in the class slides
+- Make exploratory graphs and maps
+
+# Deliverables
+
+- Complete the code and summaries and upload your .qmd and rendered .html to Quercus
+
+# Lab Description
+
+We will work with similar meteorological data that was presented in lecture. Recall the dataset consists of weather station readings in the contiguous US. 
+
+**The objective of the lab is to find the weather station with the lowest elevation, find out where this location is (make a map), and make a time series plot of temperature at this station.**
+
+# Steps
+
+### 0. Load libraries
+
+Notes: 
+
+- import the necessary libraries
+- note setting pandas options for nicer display of the output
+- in the yaml above set enabled to true when you want the code to render
+
+```{python}
+import pandas as pd
+pd.set_option("display.float_format", "{:.2f}".format) 
+import numpy as np
+import matplotlib.pyplot as plt
+import geopandas as gpd
+import contextily as cx
+from IPython.display import display
+```
+
+
+### 1. Read in the data
+
+Connect to github and read in data with pandas.
+
+```{python}
+url = "https://raw.githubusercontent.com/JSC370/JSC370-2026/main/data/met_all_2025.gz"
+met = pd.read_csv(...)    
+```
+
+### 2. Check the memory size, dataset dimensions, and the header. How many columns, rows are there?
+
+- fill in where there are ...
+
+```{python}
+met.memory_usage(deep=True).sum() / ...
+```
+
+```{python}
+met.shape[...]
+```
+
+```{python}
+met.head
+```
+
+Summary:
+- add bullets with your summary
+
+### 3. Look at data types of the variables in the dataset.
+
+```{python}
+met.info
+```
+
+Summary:
+- add bullets with your summary
+
+### 4. Take a closer look at the key variables (`temp` and `elev`). 
+
+- Are there missing data in these variables? If so, make sure they are coded correctly. 
+
+
+```{python}
+key_vars = ['temp', 'elev']
+
+met[...].isnull().sum()
+```
+
+
+- Are there any unusual values that look suspicious?
+
+
+```{python}
+
+minT = met['temp']
+maxT = ...
+
+minE = met['elev']
+maxE = ...
+
+pring(minT, maxT, minE, maxE)
+
+```
+
+Summary:
+- Add your summary here
+
+
+### 5. Check the data against an external data source and make any other adjustments.
+
+- Check that the range of elevations make sense. Google or ChatGPT is your friend here.
+- Fix any problems that arise in your checks.
+
+-
+```{python}
+
+met.loc[...] = np.nan
+met[['temp']].describe().round(4)
+```
+
+Summary:
+
+```{python}
+cold_temps = met[met['temp'] ...]
+
+# display data here extract lat and lon and check google
+```
+
+Summary:
+
+```{python}
+
+# Fix up data here, remove implausible values
+
+```
+
+
+
+## 6. Answer research questions
+
+Remember to keep the initial questions in mind. We want to pick out the weather station with minimum elevation and examine its temperature.
+
+Some ideas for steps: 
+1. subset the data for the weather station with minimum elevation
+2. look at histograms of temperature
+3. make a time series plot (need to create date variable)
+4. make a map to see where it is
+
+
+### 6a. Subset minimum elevation site
+
+```{python}
+# Subset data for the weather station with minimum elevation
+
+```
+
+### 6b. Histogram of temperature at minimum elevation site
+
+```{python}
+plt.hist(...)
+```
+
+### 6c. Create date variable and time series plot
+
+- Look at the time series of temperature at this location. For this we will need to create a date-time variable for the x-axis.
+
+- Summarize any trends that you see in these time series plots.
+
+
+```{python}
+# Create a date variable for min_elev_station
+min_elev_station = min_elev_station.copy()
+min_elev_station['date'] = pd.to_datetime(
+    min_elev_station[...]
+)
+
+# Sort by date
+min_elev_station = min_elev_station.sort_values('date')
+
+# Create line plot of temperature by date
+
+plt.plot(...)
+plt.xlabel()
+plt.ylabel()
+plt.show()
+```
+
+Summarize time series plot:
+
+### 6d. Where is the lowest weather station?
+
+```{python}
+station_location = min_elev_station[...].drop_duplicates()
+
+lat = station_location['lat'].iloc[0]
+lon = station_location['lon'].iloc[0]
+elev = station_location['elev'].iloc[0]
+
+# make elev into GeoDataFrame for mapping
+gdf = gpd.GeoDataFrame(
+    {'elevation': [elev]},
+    geometry=gpd.points_from_xy([lon], [lat]),
+    crs='EPSG:4326'
+)
+
+# Convert to Web Mercator for basemap
+gdf = gdf.to_crs('EPSG:3857')
+
+# map
+fig, ax = plt.subplots(figsize=(10, 8))
+gdf.plot(ax=ax, color='red', markersize=300, marker='*', edgecolor='black', linewidth=2, zorder=5)
+cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik)
+ax.set_xlabel('Longitude')
+ax.set_ylabel('Latitude')
+ax.set_title(f'Lowest Elevation Station (Elevation: {elev} m)')
+plt.show()
+```
+
+Summarize where the lowest elevation station is located.
