@@ -61,7 +61,7 @@ Connect to github and read in data with pandas.
 
 ```{python}
 url = "https://raw.githubusercontent.com/JSC370/JSC370-2026/main/data/met_all_2025.gz"
-met = pd.read_csv(...)    
+met = pd.read_csv(url)    
 ```
 
 ### 2. Check the memory size, dataset dimensions, and the header. How many columns, rows are there?
@@ -69,58 +69,73 @@ met = pd.read_csv(...)
 - fill in where there are ...
 
 ```{python}
-met.memory_usage(deep=True).sum() / ...
+met.memory_usage(deep=True).sum() / 1024**3
 ```
-
+2.69841643050313 GB
 ```{python}
-met.shape[...]
+met.shape
 ```
-
+5381580 rows, 30 columns
 ```{python}
-met.head
+met.head(5)
 ```
 
 Summary:
-- add bullets with your summary
+
+- Looking at the first 5 entries, it seems we are dealing with meteorological data from summer 2025.
+- Each entry correspons to a reading from a specific weather station (roughly every hour).
+- Dataset seems similar to lecture.
 
 ### 3. Look at data types of the variables in the dataset.
 
 ```{python}
-met.info
+met.dtypes
 ```
 
 Summary:
-- add bullets with your summary
+- Again, as per lecture, most variables have a quality control column.
+- Mix of integers, floats, objects...
+- Logically the IDs, dates, quality control ratings and other discrete values are int64
+- Location, temperature and dew point uses decimals and is in float64
+- Codes and other catch all values are stored as objects
 
 ### 4. Take a closer look at the key variables (`temp` and `elev`). 
 
 - Are there missing data in these variables? If so, make sure they are coded correctly. 
 
+At first glance, pandas does not recognize any missing data points.
 
 ```{python}
 key_vars = ['temp', 'elev']
 
-met[...].isnull().sum()
+met[key_vars].isnull().sum()
 ```
-
+temp    0
+elev    0
+dtype: int64
 
 - Are there any unusual values that look suspicious?
 
+- -40 degrees in June seems excessively low
+- 999.9 degrees is not physically possible
+- -35 meter (below sea level, may need to verify)
+- 3680 meters (station on a mountain, may need to verify)
 
 ```{python}
 
-minT = met['temp']
-maxT = ...
+minT = met['temp'].min()
+maxT = met['temp'].max()
 
-minE = met['elev']
-maxE = ...
+minE = met['elev'].min()
+maxE = met['elev'].max()
 
-pring(minT, maxT, minE, maxE)
+print(minT, maxT, minE, maxE)
 
 ```
 
 Summary:
-- Add your summary here
+- -40.0, 999.9, -35, 3680
+
 
 
 ### 5. Check the data against an external data source and make any other adjustments.
@@ -128,26 +143,45 @@ Summary:
 - Check that the range of elevations make sense. Google or ChatGPT is your friend here.
 - Fix any problems that arise in your checks.
 
--
 ```{python}
 
-met.loc[...] = np.nan
+met.loc[met['temp'] == 999.9] = np.nan
 met[['temp']].describe().round(4)
 ```
 
 Summary:
+- Temperature range of -40 to 56, google indicates 15 to 30.
+
+- Elevation range of -35 to 3680, google indicates -86 to 4421, so we are within the physical bounds.
+
+- Temperatures under -20 are situated around Texas. This far south this seems illogical.
 
 ```{python}
-cold_temps = met[met['temp'] ...]
-
+cold_temps = met.loc[met['temp'] <= -20.00, ['temp','lat', 'lon', 'elev']]
+cold_temps
+met.loc[met['temp'] <= -20.00] = np.nan
+met[['temp']].describe().round(4)
 # display data here extract lat and lon and check google
 ```
 
 Summary:
+- 1531 rows are at -35 meters below. According to google this corresponds to Jacqueline Cochran Regional Airport which is indeed at that altitute.
+
+- 3680m corresponds to Copper Mountain in Colorado with a summit of 3,753m according to wikipedia
+
+- 56 degrees is in the desert in California.
 
 ```{python}
-
 # Fix up data here, remove implausible values
+hot_temps = met.loc[met['temp'] == 999.9, ['temp', 'lat', 'lon', 'elev']]
+
+mountain = met.loc[met['elev'] == 3680, ['lat', 'lon', 'elev']]
+mountain
+
+below_sea = met.loc[met['elev'] == -35, ['lat', 'lon', 'elev']]
+below_sea
+
+
 
 ```
 
@@ -168,14 +202,16 @@ Some ideas for steps:
 
 ```{python}
 # Subset data for the weather station with minimum elevation
-
+min_elev_station = met[met['elev'] == met['elev'].min()]
 ```
 
 ### 6b. Histogram of temperature at minimum elevation site
 
 ```{python}
-plt.hist(...)
+plt.hist(min_elev_station['temp'].dropna(), bins=50)
+plt.xlabel('Temperature in C')
 ```
+- On most days, the temperature ranges from 25 to 40 degree.
 
 ### 6c. Create date variable and time series plot
 
@@ -188,7 +224,7 @@ plt.hist(...)
 # Create a date variable for min_elev_station
 min_elev_station = min_elev_station.copy()
 min_elev_station['date'] = pd.to_datetime(
-    min_elev_station[...]
+    min_elev_station[['year', 'month', 'day', 'hour']]
 )
 
 # Sort by date
@@ -196,18 +232,25 @@ min_elev_station = min_elev_station.sort_values('date')
 
 # Create line plot of temperature by date
 
-plt.plot(...)
-plt.xlabel()
-plt.ylabel()
+plt.plot(min_elev_station['date'], min_elev_station['temp'], linewidth=0.5, alpha=0.7)
+plt.xlabel('Date')
+plt.ylabel('Temperature in C')
+plt.grid(True, alpha=0.3)
+plt.xticks(rotation=45)
+#plt.layout(tight)
 plt.show()
 ```
 
 Summarize time series plot:
 
+- The daily variations correspond to day/night cycle.
+- The temperature range (25 to 40) confirms what we saw on the histogram
+
+
 ### 6d. Where is the lowest weather station?
 
 ```{python}
-station_location = min_elev_station[...].drop_duplicates()
+station_location = min_elev_station[['lat', 'lon', 'elev']].drop_duplicates()
 
 lat = station_location['lat'].iloc[0]
 lon = station_location['lon'].iloc[0]
@@ -234,3 +277,5 @@ plt.show()
 ```
 
 Summarize where the lowest elevation station is located.
+
+The station is located in California, south of Joshua National Park and north west of the Salton Sea. It corresponds to the Jacqueline Cochran Regional Airport.
